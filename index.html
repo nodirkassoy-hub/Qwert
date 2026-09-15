@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>POCKEY — Simple. Smart. Beautiful.</title>
+    <meta
+      name="description"
+      content="POCKEY is a pocket-sized smart scanner that turns paper, screens and objects into clean digital files in about two seconds. $189.00."
+    />
+    <meta name="theme-color" content="#05060a" />
+    <meta property="og:title" content="POCKEY — Simple. Smart. Beautiful." />
+    <meta
+      property="og:description"
+      content="A pocket-sized smart scanner. One button, two seconds, done. $189.00."
+    />
+    <meta property="og:type" content="website" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2307080c'/%3E%3Crect x='6.5' y='9' width='19' height='14' rx='4.5' fill='none' stroke='%23ffb168' stroke-width='1.6'/%3E%3Ccircle cx='12.5' cy='16' r='3.1' fill='%23ff7a2f'/%3E%3Crect x='17.5' y='14.6' width='5.5' height='2.8' rx='1.4' fill='%23f4f5f7'/%3E%3C/svg%3E"
+    />
+    <style>
+      /* First-paint shell: keeps the intro seamless before JS boots. */
+      html {
+        background: #05060a;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(120% 90% at 78% 8%, #14161d 0%, #07080d 46%, #05060a 100%);
+        color: #f4f5f7;
+        font-family: 'Manrope Variable', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: grid;
+        place-items: center;
+        background: #05060a;
+        transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      #boot.is-done {
+        opacity: 0;
+        visibility: hidden;
+      }
+      #boot .boot__mark {
+        font-family: 'Sora Variable', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.46em;
+        text-indent: 0.46em;
+        color: #f4f5f7;
+        opacity: 0.9;
+      }
+      #boot .boot__bar {
+        position: relative;
+        margin-top: 18px;
+        width: 132px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+      }
+      #boot .boot__bar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, #ffb168, #ff7a2f, transparent);
+        transform: translateX(-100%);
+        animation: bootSweep 1.15s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+      }
+      @keyframes bootSweep {
+        to {
+          transform: translateX(100%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <noscript>
+        <div
+          style="
+            max-width: 560px;
+            margin: 18vh auto;
+            padding: 0 24px;
+            text-align: center;
+          "
+        >
+          <p style="letter-spacing: 0.4em; font-size: 12px; color: #ffb168">POCKEY 01</p>
+          <h1 style="font-size: 30px; line-height: 1.15; letter-spacing: -0.03em; margin: 14px 0">
+            Simple. Smart. Beautiful.
+          </h1>
+          <p style="color: #9aa1ae; font-size: 15px; line-height: 1.6">
+            A pocket-sized smart scanner that turns paper, screens and objects into clean,
+            searchable files. One button, about two seconds.
+          </p>
+          <p style="margin-top: 18px; font-size: 26px">$189.00</p>
+          <p style="color: #626a7b; font-size: 11px; letter-spacing: 0.2em">
+            ENABLE JAVASCRIPT FOR THE FULL 3D PRESENTATION
+          </p>
+        </div>
+      </noscript>
+    </div>
+    <div id="boot">
+      <div style="text-align: center">
+        <div class="boot__mark">POCKEY</div>
+        <div class="boot__bar"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
