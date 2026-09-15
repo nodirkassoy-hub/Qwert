@@ -2,9 +2,27 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import { PockeyDevice } from './Device.jsx';
-import { LightPool, LightRig, Motes, SoftShadow, Stage, StudioEnv } from './Stage.jsx';
-import { DEVICE } from './geometry.js';
+import { LightRig, Motes, SoftShadow, Stage, StudioEnv } from './Stage.jsx';
 import { damp, fitDistance } from './fit.js';
+
+/**
+ * A key light that keeps pace with the camera so the shell never goes fully dark
+ * while it spins — the difference between a render and a product photograph.
+ */
+function TravelKey({ intensity = 0.55, height = 2.4, back = 7.5 }) {
+  const light = useRef();
+  useFrame((state) => {
+    const l = light.current;
+    if (!l) return;
+    const c = state.camera;
+    l.position.set(c.position.x * 0.6 + 1.6, c.position.y + height, c.position.z * 0.3 + back);
+    l.target.position.set(0, 0.1, 0);
+    l.target.updateMatrixWorld();
+  });
+  return (
+    <directionalLight ref={light} intensity={intensity} color="#fff2e2" />
+  );
+}
 import { store } from '../lib/store.js';
 
 /** Full-screen-ish hero product: pointer parallax, idle float, scroll drift. */
@@ -14,14 +32,13 @@ export function HeroScene({ finishId = 'obsidian' }) {
     <>
       <StudioEnv />
       <LightRig />
-      <LightPool scale={26} opacity={0.45} position={[0, -0.6, -9]} />
+      <TravelKey intensity={0.4} />
       <HeroRig>
         <Float enabled={hi && !store.reduced} speed={1.05} rotationIntensity={0.14} floatIntensity={0.5} floatingRange={[-0.16, 0.16]}>
           <PockeyDevice finishId={finishId} rotation={[0.04, 0.42, 0.02]} />
         </Float>
       </HeroRig>
-      <Stage hi={hi} y={-4.05} />
-      <SoftShadow y={-3.98} opacity={0.7} scale={24} frames={hi ? Infinity : 1} />
+      <SoftShadow y={-3.62} opacity={0.58} scale={19} frames={hi ? Infinity : 1} />
       {!store.reduced && <Motes dense={hi} />}
     </>
   );
@@ -38,7 +55,9 @@ function HeroRig({ children }) {
     const px = allowPointer ? store.pointer.x : 0;
     const py = allowPointer ? store.pointer.y : 0;
 
-    const dist = fitDistance(camera, size, { width: DEVICE.w * 1.08, height: DEVICE.h * 1.18, fill: 0.78 });
+    // 11.2 ≈ the shell diagonal, so the product never clips mid-rotation
+    const fill = size.width < 900 ? 0.86 : 0.8;
+    const dist = fitDistance(camera, size, { width: 11.4, height: 9.4, fill });
 
     camera.position.x = damp(camera.position.x, px * 1.15, 2.6, dt);
     camera.position.y = damp(camera.position.y, 0.75 + py * 0.7 - p * 1.6, 2.6, dt);
@@ -67,13 +86,13 @@ export function ShowcaseScene({ finishId = 'obsidian' }) {
     <>
       <StudioEnv intensity={1.05} />
       <LightRig />
-      <LightPool scale={34} opacity={0.34} position={[0, -1.4, -11]} />
+      <TravelKey intensity={0.72} height={2.1} back={6.5} />
       <ShowcaseRig>
         <PockeyDevice finishId={finishId} />
       </ShowcaseRig>
       <OrbitRings />
-      <Stage hi={hi} y={-4.25} />
-      <SoftShadow y={-4.18} opacity={0.64} scale={28} frames={hi ? Infinity : 1} />
+      <Stage hi={hi} y={-5.6} />
+      <SoftShadow y={-5.5} opacity={0.66} scale={26} frames={hi ? Infinity : 1} />
       {!store.reduced && <Motes dense={hi} />}
     </>
   );
@@ -105,17 +124,18 @@ function ShowcaseRig({ children }) {
       g.position.x = damp(g.position.x, Math.sin(p * Math.PI * 2) * 0.5, 4, dt);
     }
 
+    // fit the shell diagonal (11.4) on both axes, so the slab never clips mid-spin
     const mobile = size.width < 900;
     const dist = fitDistance(camera, size, {
-      width: DEVICE.w * (mobile ? 1.14 : 1.12),
-      height: DEVICE.h * (mobile ? 1.12 : 1.18),
-      fill: mobile ? 0.86 : 0.68,
+      width: 11.4,
+      height: 10.4,
+      fill: mobile ? 0.74 : 0.6,
     });
 
     camera.position.x = damp(camera.position.x, Math.sin(p * Math.PI) * 1.5 + store.pointer.x * 0.5, 3, dt);
     camera.position.y = damp(camera.position.y, 2.3 - p * 3.6 + store.pointer.y * 0.35, 3, dt);
     camera.position.z = damp(camera.position.z, dist - Math.sin(p * Math.PI) * dist * 0.07, 3, dt);
-    camera.lookAt(0, mobile ? -0.85 : -0.05, 0);
+    camera.lookAt(0, mobile ? 0.55 : 0.42, 0);
   });
 
   return <group ref={group}>{children}</group>;
@@ -124,18 +144,14 @@ function ShowcaseRig({ children }) {
 /** Emissive guide rings on the stage floor. */
 function OrbitRings() {
   return (
-    <group position={[0, -4.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <group position={[0, -5.52, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <mesh>
-        <ringGeometry args={[4.1, 4.16, 96]} />
-        <meshBasicMaterial color="#ffb168" transparent opacity={0.4} toneMapped={false} side={2} />
+        <ringGeometry args={[3.5, 3.56, 128]} />
+        <meshBasicMaterial color="#ffb168" transparent opacity={0.34} toneMapped={false} side={2} depthWrite={false} />
       </mesh>
       <mesh>
-        <ringGeometry args={[5.6, 5.63, 96]} />
-        <meshBasicMaterial color="#8fd8ff" transparent opacity={0.16} toneMapped={false} side={2} />
-      </mesh>
-      <mesh>
-        <ringGeometry args={[7.4, 7.42, 96]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.07} toneMapped={false} side={2} />
+        <ringGeometry args={[4.9, 4.93, 128]} />
+        <meshBasicMaterial color="#8fd8ff" transparent opacity={0.13} toneMapped={false} side={2} depthWrite={false} />
       </mesh>
     </group>
   );

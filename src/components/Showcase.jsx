@@ -8,8 +8,6 @@ const HOTSPOTS = [
     k: 'Optics',
     t: 'Sapphire lens array',
     d: 'Six elements, focus locked in 0.1 s.',
-    side: 'left',
-    style: { left: '5%', top: '30%' },
     from: 0.03,
     to: 0.28,
   },
@@ -17,8 +15,6 @@ const HOTSPOTS = [
     k: 'Structure',
     t: 'Milled titanium band',
     d: 'One billet, 0.4 µm tolerance, no seams.',
-    side: 'right',
-    style: { right: '5%', top: '21%' },
     from: 0.24,
     to: 0.48,
   },
@@ -26,8 +22,6 @@ const HOTSPOTS = [
     k: 'Surface',
     t: 'Matte ceramic shell',
     d: 'Cool to the touch. Zero fingerprints.',
-    side: 'left',
-    style: { left: '5%', bottom: '24%' },
     from: 0.46,
     to: 0.7,
   },
@@ -35,30 +29,30 @@ const HOTSPOTS = [
     k: 'Endurance',
     t: 'All-day cell, 35 W refill',
     d: '1,900 mAh — 400 scans, then charge in 40 min.',
-    side: 'right',
-    style: { right: '5%', bottom: '30%' },
     from: 0.66,
     to: 0.95,
   },
 ];
 
-function Hotspot({ spot, inView }) {
-  return (
-    <div
-      className={`hotspot hotspot--${spot.side}${inView ? ' is-in' : ''}`}
-      style={{ ...spot.style, '--dx': spot.side === 'left' ? '-14px' : '14px' }}
-    >
-      <div className="hotspot__connector">
-        <span className="hotspot__dot" aria-hidden="true" />
-        <span className="hotspot__line" aria-hidden="true" />
-      </div>
-      <div className="hotspot__body">
-        <div className="hotspot__k">{spot.k}</div>
-        <div className="hotspot__t">{spot.t}</div>
-        <div className="hotspot__d">{spot.d}</div>
-      </div>
-    </div>
-  );
+/**
+ * One annotation at a time: the card swaps as the spin crosses each band, so the
+ * stage never gets crowded and nothing collides with the product on small screens.
+ */
+function activeIndex(p) {
+  let best = 0;
+  let score = -Infinity;
+  for (let i = 0; i < HOTSPOTS.length; i += 1) {
+    const h = HOTSPOTS[i];
+    const mid = (h.from + h.to) / 2;
+    const half = (h.to - h.from) / 2;
+    const inside = p >= h.from && p <= h.to;
+    const s = inside ? 1 - Math.abs(p - mid) / half : -Math.abs(p - mid);
+    if (s > score) {
+      score = s;
+      best = i;
+    }
+  }
+  return best;
 }
 
 export function Showcase({ finishId }) {
@@ -66,25 +60,28 @@ export function Showcase({ finishId }) {
   const pinRef = useRef(null);
   const dialRef = useRef(null);
   const degRef = useRef(null);
-  const visRef = useRef(HOTSPOTS.map(() => false));
-  const [vis, setVis] = useState(visRef.current);
+  const idxRef = useRef(-1);
+  const [idx, setIdx] = useState(0);
 
   useStickyProgress(wrapRef, (p) => {
     store.showP = p;
     if (dialRef.current) dialRef.current.style.setProperty('--w', `${(p * 100).toFixed(1)}%`);
     if (degRef.current) degRef.current.textContent = `${Math.round((p * 2.25 * 360) % 360)}`.padStart(3, '0');
 
+    // only the chrome dims on exit — the product stays lit until the section hands over
     if (pinRef.current) {
-      const out = Math.min(1, Math.max(0, (1 - p) / 0.09));
-      pinRef.current.style.opacity = (0.32 + 0.68 * out).toFixed(3);
+      const out = Math.min(1, Math.max(0, (1 - p) / 0.07));
+      pinRef.current.style.opacity = (0.55 + 0.45 * out).toFixed(3);
     }
 
-    const next = HOTSPOTS.map((h) => p >= h.from && p <= h.to);
-    if (next.some((v, i) => v !== visRef.current[i])) {
-      visRef.current = next;
-      setVis(next);
+    const next = activeIndex(p);
+    if (next !== idxRef.current) {
+      idxRef.current = next;
+      setIdx(next);
     }
   });
+
+  const spot = HOTSPOTS[Math.max(0, idx)];
 
   return (
     <section className="showcase" id="showcase" ref={wrapRef} aria-label="POCKEY product showcase">
@@ -113,9 +110,23 @@ export function Showcase({ finishId }) {
         </div>
 
         <div className="hotspots">
-          {HOTSPOTS.map((spot, i) => (
-            <Hotspot key={spot.t} spot={spot} inView={vis[i]} />
-          ))}
+          {/* the copy swaps with the spin, so it stays out of the live region */}
+          <div className="hotspot is-in">
+            <div className="hotspot__connector" aria-hidden="true">
+              <span className="hotspot__dot" />
+              <span className="hotspot__line" />
+            </div>
+            <div className="hotspot__body" key={spot.k}>
+              <div className="hotspot__k">
+                {spot.k}
+                <i>
+                  0{idx + 1} / 0{HOTSPOTS.length}
+                </i>
+              </div>
+              <div className="hotspot__t">{spot.t}</div>
+              <div className="hotspot__d">{spot.d}</div>
+            </div>
+          </div>
         </div>
 
         <div className="showcase__dial">

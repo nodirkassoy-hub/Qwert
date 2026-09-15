@@ -227,20 +227,21 @@ export function makeVentTexture(cols = 12, rows = 3) {
   return finish(s);
 }
 
-/** Soft radial light pool rendered behind the product. */
-export function makeGlowTexture() {
-  const s = surface(512, 512);
+/** Radial falloff used to feather the studio floor so it has no hard edge. */
+export function makeFadeTexture(inner = 0.18, mid = 0.55) {
+  const s = surface(256, 256);
   if (!s) return null;
   const { ctx, w, h } = s;
-  ctx.clearRect(0, 0, w, h);
   const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-  g.addColorStop(0, 'rgba(255,196,140,0.85)');
-  g.addColorStop(0.35, 'rgba(255,138,61,0.32)');
-  g.addColorStop(0.7, 'rgba(120,90,255,0.06)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(inner, '#ffffff');
+  g.addColorStop(mid, 'rgba(255,255,255,0.55)');
+  g.addColorStop(0.86, 'rgba(255,255,255,0.08)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
-  const tex = finish(s, { srgb: true });
+  const tex = finish(s);
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
   return tex;
 }
+

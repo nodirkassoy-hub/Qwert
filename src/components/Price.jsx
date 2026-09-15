@@ -1,4 +1,3 @@
-import React, { useRef } from 'react';
 import { FINISHES } from '../lib/store.js';
 import { useMagnetic } from '../hooks.js';
 import { Arrow, Shield } from './Icons.jsx';

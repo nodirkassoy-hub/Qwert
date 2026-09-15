@@ -7,7 +7,7 @@ import { Showcase } from './components/Showcase.jsx';
 import { Price } from './components/Price.jsx';
 import { BuyModal } from './components/BuyModal.jsx';
 import { initStore, store } from './lib/store.js';
-import { initChrome, initSmoothScroll, playHeroIntro, setupReveals } from './lib/motion.js';
+import { initChrome, initSmoothScroll, setupReveals } from './lib/motion.js';
 
 initStore();
 
@@ -53,8 +53,8 @@ export default function App() {
       }
     };
     safe(initSmoothScroll);
-    const ctx = safe(setupReveals);
     const offChrome = safe(initChrome) || (() => {});
+    let reveals = null;
 
     let lifted = false;
     const lift = () => {
@@ -65,7 +65,6 @@ export default function App() {
         boot.classList.add('is-done');
         setTimeout(() => boot.remove(), 1100);
       }
-      safe(playHeroIntro);
       requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     };
 
@@ -80,9 +79,8 @@ export default function App() {
     return () => {
       clearTimeout(hard);
       offChrome();
-      if (ctx && typeof ctx.revert === 'function') ctx.revert();
+      if (typeof reveals === 'function') reveals();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

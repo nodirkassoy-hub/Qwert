@@ -5,19 +5,19 @@ import { Arrow, Check, Close } from './Icons.jsx';
 
 const LINES = [
   ['POCKEY 01 · Scanner', '×1'],
-  ['Travel sleeve', 'Included'],
+  ['Woven carry sleeve', 'Included'],
   ['Shipping', 'Free · 2 days'],
 ];
 
 export function BuyModal({ open, onClose, price, cents, finishId }) {
-  const [done, setDone] = useState(false);
+  const [state, setState] = useState('cart'); // cart | processing | done
   const cardRef = useRef(null);
   const closeRef = useRef(null);
   const finish = FINISHES[finishId] || FINISHES.obsidian;
 
   useEffect(() => {
     if (!open) return;
-    setDone(false);
+    setState('cart');
     lockScroll(true);
     const t = setTimeout(() => closeRef.current?.focus(), 60);
     const onKey = (e) => {
@@ -34,12 +34,12 @@ export function BuyModal({ open, onClose, price, cents, finishId }) {
   return (
     <div className={`modal${open ? ' is-open' : ''}`} role="dialog" aria-modal="true" aria-label="Buy POCKEY" aria-hidden={!open}>
       <button type="button" className="modal__scrim" onClick={onClose} tabIndex={open ? 0 : -1} aria-label="Close" />
-      <div className="modal__card" ref={cardRef}>
+      <div className={`modal__card${state === 'done' ? ' is-done' : ''}`} ref={cardRef}>
         <button type="button" className="modal__close" onClick={onClose} ref={closeRef} tabIndex={open ? 0 : -1} aria-label="Close">
           <Close />
         </button>
 
-        {!done ? (
+        {state === 'cart' || state === 'processing' ? (
           <>
             <div className="modal__head">
               <span className="modal__thumb" style={{ '--sw': finish.swatch }} aria-hidden="true">
@@ -73,9 +73,17 @@ export function BuyModal({ open, onClose, price, cents, finishId }) {
               </b>
             </div>
 
-            <button type="button" className="btn btn--primary" onClick={() => setDone(true)}>
-              <span>Complete purchase</span>
-              <Arrow />
+            <button
+              type="button"
+              className={`btn btn--primary${state === 'processing' ? ' is-busy' : ''}`}
+              disabled={state === 'processing'}
+              onClick={() => {
+                setState('processing');
+                setTimeout(() => setState('done'), 1150);
+              }}
+            >
+              <span>{state === 'processing' ? 'Securing order…' : `Complete purchase · ${price}${cents}`}</span>
+              {state === 'processing' ? <i className="spinner" aria-hidden="true" /> : <Arrow />}
             </button>
             <p className="modal__foot">Demo checkout — no payment is taken.</p>
           </>

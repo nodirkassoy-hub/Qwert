@@ -1,9 +1,5 @@
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { store } from './store.js';
-
-gsap.registerPlugin(ScrollTrigger);
 
 let lenis = null;
 
@@ -20,9 +16,11 @@ export function initSmoothScroll() {
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
   });
 
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
-  gsap.ticker.lagSmoothing(0);
+  const raf = (time) => {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  };
+  requestAnimationFrame(raf);
   return lenis;
 }
 
@@ -30,11 +28,8 @@ export function scrollToSection(target) {
   if (typeof window === 'undefined') return;
   const el = typeof target === 'string' ? document.querySelector(target) : target;
   if (!el) return;
-  if (lenis) {
-    lenis.scrollTo(el, { offset: -30, duration: 1.25 });
-  } else {
-    el.scrollIntoView({ behavior: store.reduced ? 'auto' : 'smooth', block: 'start' });
-  }
+  if (lenis) lenis.scrollTo(el, { offset: -30, duration: 1.25 });
+  else el.scrollIntoView({ behavior: store.reduced ? 'auto' : 'smooth', block: 'start' });
 }
 
 export function lockScroll(locked) {
@@ -45,89 +40,73 @@ export function lockScroll(locked) {
 }
 
 /**
- * Scroll-triggered entrance choreography.
+ * Scroll-triggered entrances.
  *
- * Hidden states are armed by the `js-reveal` class only, so if GSAP ever fails to
- * boot the page is still fully readable. On completion each element sheds its
- * reveal attribute and inline transform so CSS hover states stay in charge.
+ * The hidden states are armed by the `js-reveal` class and released by an
+ * `.is-lit` class, so the actual motion is a compositor-driven CSS transition:
+ * it survives a backgrounded tab, a crawler, or any frame budget. A safety net
+ * forces everything visible shortly after load so nothing can ever stay hidden.
  */
-export function setupReveals() {
-  if (typeof document === 'undefined') return;
+export function setupReveals(root = document) {
+  if (typeof document === 'undefined' || store.reduced) return () => {};
   document.documentElement.classList.add('js-reveal');
-  if (store.reduced) return;
 
-  const ctx = gsap.context(() => {
-    // masked headline lines
-    gsap.utils.toArray('[data-reveal-lines]:not([data-hero])').forEach((wrap) => {
-      const lines = gsap.utils.toArray('.line-mask > span', wrap);
-      if (!lines.length) return;
-      gsap.fromTo(
-        lines,
-        { yPercent: 118 },
-        {
-          yPercent: 0,
-          duration: 1.2,
-          ease: 'power4.out',
-          stagger: 0.1,
-          scrollTrigger: { trigger: wrap, start: 'top 88%', once: true },
-        }
-      );
-    });
-
-    // generic reveals
-    gsap.utils.toArray('[data-reveal]').forEach((el) => {
-      const kind = el.dataset.reveal || 'up';
-      const delay = parseFloat(el.dataset.delay || '0') || 0;
-      const from = { opacity: 0 };
-      if (kind === 'up') from.y = 32;
-      if (kind === 'down') from.y = -18;
-      if (kind === 'scale') from.scale = 0.94;
-      if (kind === 'mask') from.clipPath = 'inset(0 0 100% 0)';
-
-      const to = {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        clipPath: 'inset(0 0 0% 0)',
-        duration: 1.05,
-        ease: 'power3.out',
-        delay,
-        onComplete: () => {
-          el.removeAttribute('data-reveal');
-          gsap.set(el, { clearProps: 'all' });
-        },
-      };
-
-      gsap.fromTo(el, from, {
-        ...to,
-        scrollTrigger: { trigger: el, start: 'top 88%', once: true },
-      });
-    });
+  const items = [...root.querySelectorAll('[data-reveal], [data-reveal-lines]')];
+  items.forEach((el) => {
+    const d = parseFloat(el.dataset.delay || '0');
+    if (d) el.style.setProperty('--d', String(d));
   });
 
-  requestAnimationFrame(() => ScrollTrigger.refresh());
-  return ctx;
-}
+  /**
+   * Light an element, then hand it back to CSS: once the transition has run we drop
+   * the reveal attributes so hover/active transforms on the same element work again.
+   */
+  const light = (el) => {
+    el.classList.add('is-lit');
+    let cleaned = false;
+    const done = () => {
+      if (cleaned) return;
+      cleaned = true;
+      el.removeAttribute('data-reveal');
+      el.removeAttribute('data-reveal-lines');
+      el.classList.remove('is-lit');
+      el.removeEventListener('transitionend', done);
+    };
+    el.addEventListener('transitionend', done);
+    setTimeout(done, 2400);
+  };
 
-/** Hero entrance, fired when the intro curtain lifts. */
-export function playHeroIntro() {
-  if (typeof document === 'undefined' || store.reduced) return;
-  const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
-  tl.from('.hero__eyebrow', { y: 14, opacity: 0, duration: 0.8 }, 0)
-    .fromTo(
-      '.hero__title .line-mask > span',
-      { yPercent: 118 },
-      { yPercent: 0, duration: 1.3, stagger: 0.12 },
-      0.05
-    )
-    .from('.hero__sub', { y: 22, opacity: 0, duration: 1 }, 0.42)
-    .from('.hero__actions', { y: 22, opacity: 0, duration: 1 }, 0.54)
-    .from('.hero__meta li', { y: 12, opacity: 0, duration: 0.7, stagger: 0.07 }, 0.64)
-    .from('.hero__stage', { opacity: 0, scale: 0.92, duration: 1.7 }, 0.1)
-    .from('.stage-badge', { opacity: 0, y: 10, duration: 0.8, stagger: 0.12 }, 0.95)
-    .from('.scroll-cue', { opacity: 0, duration: 0.9 }, 1.15)
-    .from('.nav__inner', { yPercent: -150, opacity: 0, duration: 1 }, 0.2);
-  return tl;
+  let lit = 0;
+  let io = null;
+  if (typeof IntersectionObserver !== 'undefined') {
+    io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            light(entry.target);
+            lit += 1;
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+    );
+    items.forEach((el) => io.observe(el));
+  } else {
+    items.forEach(light);
+  }
+
+  // Safety net: if the observer never delivered anything (throttled frames,
+  // headless capture, exotic embedders) reveal the page instead of leaving it blank.
+  const force = () => document.documentElement.classList.add('reveal-force');
+  const guard = setTimeout(() => {
+    if (lit === 0) force();
+  }, 1400);
+
+  return () => {
+    clearTimeout(guard);
+    if (io) io.disconnect();
+  };
 }
 
 /** Sticky nav shrink/hide + top progress rail. */
@@ -162,5 +141,3 @@ export function initChrome() {
     if (raf) cancelAnimationFrame(raf);
   };
 }
-
-export { gsap, ScrollTrigger };

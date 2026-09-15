@@ -14,7 +14,7 @@ export function Nav({ price, onBuy }) {
 
   return (
     <header className="nav">
-      <div className="nav__inner">
+      <div className="nav__inner" data-reveal="down">
         <a
           href="#hero"
           className="logo"

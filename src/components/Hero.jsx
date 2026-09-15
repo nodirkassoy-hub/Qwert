@@ -17,14 +17,11 @@ export function Hero({ price, cents, priceNote, blurb, specs, finishId, onBuy })
     <section className="hero" id="hero" ref={heroRef}>
       <div className="hero__grid">
         <div className="hero__copy">
-          <span className="eyebrow hero__eyebrow">POCKEY 01 · Pocket smart scanner</span>
+          <span className="eyebrow hero__eyebrow" data-reveal="up">POCKEY 01 · Pocket smart scanner</span>
 
-          <h1 className="hero__title" data-hero data-reveal-lines>
+          <h1 className="hero__title" data-reveal-lines data-delay="0.05">
             <span className="line-mask">
-              <span>
-                <i className="dash" aria-hidden="true" />
-                POCKEY&nbsp;—
-              </span>
+              <span>POCKEY&nbsp;—</span>
             </span>
             <span className="line-mask">
               <span className="l2">
@@ -43,9 +40,9 @@ export function Hero({ price, cents, priceNote, blurb, specs, finishId, onBuy })
             </span>
           </h1>
 
-          <p className="hero__sub">{blurb}</p>
+          <p className="hero__sub" data-reveal="up" data-delay="0.3">{blurb}</p>
 
-          <div className="hero__actions">
+          <div className="hero__actions" data-reveal="up" data-delay="0.38">
             <button ref={buyRef} type="button" className="btn btn--primary btn--lg" onClick={onBuy}>
               <span>Buy now</span>
               <Arrow />
@@ -62,7 +59,7 @@ export function Hero({ price, cents, priceNote, blurb, specs, finishId, onBuy })
             </div>
           </div>
 
-          <ul className="hero__meta">
+          <ul className="hero__meta" data-reveal="up" data-delay="0.5">
             {specs.map((s) => (
               <li key={s}>
                 <i aria-hidden="true" />
@@ -72,15 +69,15 @@ export function Hero({ price, cents, priceNote, blurb, specs, finishId, onBuy })
           </ul>
         </div>
 
-        <div className="hero__stage">
+        <div className="hero__stage" data-reveal="scale" data-delay="0.12">
           <div className="stage-glow" aria-hidden="true" />
           <div className="stage-halo" aria-hidden="true" />
           <div className="stage-frame" aria-hidden="true" />
           <ProductStage mode="hero" finishId={finishId} />
-          <span className="stage-badge stage-badge--tl">
+          <span className="stage-badge stage-badge--tl" data-reveal data-delay="0.6">
             <b>2.0s</b> object to file
           </span>
-          <span className="stage-badge stage-badge--br">
+          <span className="stage-badge stage-badge--br" data-reveal data-delay="0.68">
             84 g · <b>11 mm</b>
           </span>
         </div>
@@ -89,6 +86,8 @@ export function Hero({ price, cents, priceNote, blurb, specs, finishId, onBuy })
       <button
         type="button"
         className="scroll-cue"
+        data-reveal
+        data-delay="0.85"
         onClick={() => scrollToSection('#product')}
         aria-label="Scroll to what POCKEY is for"
       >

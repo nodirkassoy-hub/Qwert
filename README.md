@@ -32,18 +32,22 @@ No blog, no testimonials, no FAQ, no auth, no newsletter — deliberately.
   (screen, iris, brushed metal, ceramic speckle, wordmark, vent mask) is painted to a
   `<canvas>` at runtime.
 - **Lighting**: a local studio environment baked from drei `<Lightformer>` panels (soft box,
-  warm key, cool rim, specular strip) — no HDR files. Softness comes from `ContactShadows`,
-  depth from a mirror `MeshReflectorMaterial` stage floor.
-- **Framing**: `src/three/fit.js` solves the camera distance from the container's aspect ratio,
-  so the product is always the same visual size from a 360px phone to a 5K desktop.
-- **Motion**: Lenis for momentum scrolling, GSAP + ScrollTrigger for reveals and the pinned
-  showcase, pointer parallax + damped camera. Scroll and pointer values live in a mutable
-  store (`src/lib/store.js`) read inside `useFrame`, so 60fps animation never triggers React
-  renders.
+  warm key, cool rim, specular strip) — no HDR files. Softness comes from `ContactShadows`;
+  the showcase adds a feathered `MeshReflectorMaterial` stage floor whose radial alpha map
+  dissolves into the page so no plane edge is ever visible, and a light that tracks the camera
+  so no face of the shell goes black mid-spin.
+- **Framing**: `src/three/fit.js` solves the camera distance from the container's aspect ratio
+  and from the shell *diagonal*, so the product keeps the same visual size from a 360px phone to
+  a 5K desktop and never clips at the moment it turns edge-on.
+- **Motion**: Lenis for momentum scrolling; scroll-triggered reveals are IntersectionObserver +
+  CSS transitions, deliberately not a JS tween, so content can never be stranded in a hidden
+  state by a stalled animation frame. The pinned showcase and its annotation card are driven by
+  scroll progress writing straight to the DOM. Scroll and pointer values live in a mutable store
+  (`src/lib/store.js`) read inside `useFrame`, so 60fps animation never triggers React renders.
 - **Perf & resilience**: three/drei ship in an async chunk, so first paint is the CSS studio
   render; the real scene cross-fades in over it. The 3D layer is wrapped in an error boundary
   that keeps the poster if WebGL is missing, rendering pauses when a canvas leaves the
-  viewport, and low-power devices drop transmission, reflections and particle density.
+  viewport, and low-power devices drop reflections, shadow samples and particle density.
   `prefers-reduced-motion` disables parallax, float, particles, smooth scroll and the
   scan-line.
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { DEVICE, slabGeometry } from './geometry.js';
 import { FINISHES, isLowPower } from '../lib/store.js';
 import {
@@ -56,11 +57,12 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
   const mats = useMemo(() => {
     const shell = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(finish.shell),
+      name: 'pockey-shell',
       metalness: finish.shellMetal,
       roughness: finish.shellRough,
-      clearcoat: 1,
-      clearcoatRoughness: 0.32,
-      envMapIntensity: 1.2,
+      clearcoat: 0.78,
+      clearcoatRoughness: 0.34,
+      envMapIntensity: 0.92,
     });
     if (tex.speckle) {
       shell.bumpMap = tex.speckle;
@@ -70,9 +72,9 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
     const band = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(finish.band),
       metalness: 1,
-      roughness: 0.72,
-      envMapIntensity: 1.55,
-      anisotropy: 0.55,
+      roughness: 0.78,
+      envMapIntensity: 1.06,
+      anisotropy: 0.5,
       anisotropyRotation: Math.PI / 2,
     });
     if (tex.brushed) {
@@ -83,44 +85,44 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
     const glassPanel = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color('#05070c'),
       metalness: 0.28,
-      roughness: 0.07,
+      roughness: 0.115,
       clearcoat: 1,
       clearcoatRoughness: 0.03,
-      envMapIntensity: 1.8,
+      envMapIntensity: 1.2,
       sheen: hi ? 0.45 : 0,
       sheenColor: new THREE.Color('#8fd8ff'),
     });
 
     const dark = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#070a10'),
-      metalness: 0.45,
-      roughness: 0.34,
-      envMapIntensity: 1.1,
+      color: new THREE.Color('#080b12'),
+      metalness: 0.5,
+      roughness: 0.36,
+      envMapIntensity: 1,
+      // the lens barrel is an open tube — both faces must render
+      side: THREE.DoubleSide,
     });
 
-    const lensGlass = hi
-      ? new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color('#dfeeff'),
-          metalness: 0,
-          roughness: 0.03,
-          transmission: 0.92,
-          thickness: 0.5,
-          ior: 1.72,
-          clearcoat: 1,
-          clearcoatRoughness: 0.02,
-          attenuationColor: new THREE.Color('#2b4a7a'),
-          attenuationDistance: 1.4,
-          envMapIntensity: 2.1,
-          specularIntensity: 1,
-        })
-      : new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color('#0a1220'),
-          metalness: 0.35,
-          roughness: 0.05,
-          clearcoat: 1,
-          clearcoatRoughness: 0.02,
-          envMapIntensity: 2.4,
-        });
+    const lensRing = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#9aa1ac'),
+      metalness: 1,
+      roughness: 0.3,
+      envMapIntensity: 1.25,
+    });
+
+    // A semi-transparent polished dome reads as coated lens glass and costs no
+    // extra render pass: the iris plate underneath supplies the depth.
+    const lensGlass = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#0b1420'),
+      metalness: 0.12,
+      roughness: 0.035,
+      clearcoat: 1,
+      clearcoatRoughness: 0.02,
+      ior: 1.52,
+      envMapIntensity: 2.6,
+      transparent: true,
+      opacity: hi ? 0.52 : 0.68,
+      depthWrite: false,
+    });
 
     const screen = new THREE.MeshStandardMaterial({
       color: new THREE.Color('#05070b'),
@@ -133,19 +135,21 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
     });
 
     const engrave = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#e3e8f0'),
-      metalness: 1,
-      roughness: 0.14,
+      color: new THREE.Color('#eef2f8'),
+      metalness: 0.85,
+      roughness: 0.28,
+      emissive: new THREE.Color('#5c636f'),
+      emissiveIntensity: 0.35,
       alphaMap: tex.wordmark,
       transparent: true,
       depthWrite: false,
-      envMapIntensity: 1.8,
+      envMapIntensity: 1.5,
     });
 
     const amber = new THREE.MeshStandardMaterial({
       color: new THREE.Color('#2b1204'),
       emissive: new THREE.Color('#ff8a3d'),
-      emissiveIntensity: 3.6,
+      emissiveIntensity: 2.4,
       roughness: 0.35,
       metalness: 0.2,
     });
@@ -153,7 +157,7 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
     const ice = new THREE.MeshStandardMaterial({
       color: new THREE.Color('#04121c'),
       emissive: new THREE.Color('#7fd8ff'),
-      emissiveIntensity: 1.8,
+      emissiveIntensity: 1.1,
       roughness: 0.4,
       metalness: 0.1,
     });
@@ -168,17 +172,38 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
     });
 
     const iris = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#0a0e16'),
+      color: new THREE.Color('#05070c'),
       map: tex.iris,
       emissiveMap: tex.iris,
-      emissive: new THREE.Color('#4a7fb5'),
-      emissiveIntensity: 0.4,
-      roughness: 0.25,
-      metalness: 0.7,
+      emissive: new THREE.Color('#5c93cf'),
+      emissiveIntensity: 0.85,
+      roughness: 0.22,
+      metalness: 0.8,
     });
 
-    return { shell, band, glassPanel, dark, lensGlass, screen, engrave, amber, ice, vent, iris };
-  }, [finish, tex, hi]);
+    return { shell, band, glassPanel, dark, lensRing, lensGlass, screen, engrave, amber, ice, vent, iris };
+    // deliberately NOT keyed on `finish` — the shell morphs instead of re-compiling materials
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tex, hi]);
+
+  const target = useMemo(
+    () => ({
+      shell: new THREE.Color(finish.shell),
+      band: new THREE.Color(finish.band),
+      rough: finish.shellRough,
+      metal: finish.shellMetal,
+    }),
+    [finish]
+  );
+
+  useFrame((_, delta) => {
+    const k = 1 - Math.exp(-7 * Math.min(delta, 0.05));
+    const { shell, band } = mats;
+    shell.color.lerp(target.shell, k);
+    band.color.lerp(target.band, k);
+    shell.roughness += (target.rough - shell.roughness) * k;
+    shell.metalness += (target.metal - shell.metalness) * k;
+  });
 
   // dispose GPU resources once, on unmount only
   const bag = useMemo(() => ({ ...geo, ...tex, ...mats }), [geo, tex, mats]);
@@ -210,11 +235,8 @@ export function PockeyDevice({ finishId = 'obsidian', quality, ...props }) {
       </mesh>
 
       {/* status lights */}
-      <mesh position={[W / 2 - 0.75, -H / 2 + 0.86, FACE + 0.02]} material={mats.amber}>
-        <sphereGeometry args={[0.05, 16, 12]} />
-      </mesh>
-      <mesh position={[W / 2 - 1.14, -H / 2 + 0.86, FACE + 0.02]} material={mats.ice}>
-        <sphereGeometry args={[0.038, 12, 10]} />
+      <mesh position={[W / 2 - 0.72, -H / 2 + 0.8, FACE + 0.02]} material={mats.amber}>
+        <sphereGeometry args={[0.042, 14, 10]} />
       </mesh>
 
       {/* milled side keys: scan trigger, slider, shutter — local x→y, y→z, z→x */}
@@ -246,38 +268,35 @@ function LensAssembly({ mats, hi, x, y, z }) {
     <group position={[x, y, z]}>
       {/* seat ring shadowed onto the glass */}
       <mesh material={mats.dark} position={[0, 0, 0.003]}>
-        <ringGeometry args={[r + 0.02, r + 0.34, seg]} />
+        <ringGeometry args={[r + 0.02, r + 0.3, seg]} />
       </mesh>
-      {/* machined pedestal wall */}
-      <mesh material={mats.band} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.085]}>
+      {/* machined pedestal */}
+      <mesh material={mats.lensRing} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.085]}>
         <cylinderGeometry args={[r + 0.08, r + 0.1, 0.17, seg, 1, true]} />
       </mesh>
-      {/* top bezel */}
-      <mesh material={mats.band} position={[0, 0, 0.17]}>
-        <torusGeometry args={[r + 0.04, 0.075, hi ? 20 : 10, seg]} />
+      {/* polished top bezel */}
+      <mesh material={mats.lensRing} position={[0, 0, 0.17]}>
+        <torusGeometry args={[r + 0.04, 0.07, hi ? 20 : 10, seg]} />
       </mesh>
       {/* dark liner you look down into */}
-      <mesh material={mats.dark} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.055]}>
-        <cylinderGeometry args={[r - 0.04, r + 0.02, 0.24, seg, 1, true]} />
+      <mesh material={mats.dark} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.06]}>
+        <cylinderGeometry args={[r - 0.05, r + 0.02, 0.22, seg, 1, true]} />
       </mesh>
-      {/* aperture */}
-      <mesh material={mats.iris} position={[0, 0, 0.014]}>
-        <circleGeometry args={[r - 0.03, seg]} />
+      {/* aperture plate */}
+      <mesh material={mats.iris} position={[0, 0, 0.03]}>
+        <circleGeometry args={[r - 0.05, seg]} />
       </mesh>
       {/* amber lock ring */}
-      <mesh material={mats.amber} position={[0, 0, 0.028]}>
-        <torusGeometry args={[r - 0.3, 0.014, 8, seg]} />
+      <mesh material={mats.amber} position={[0, 0, 0.042]}>
+        <torusGeometry args={[r - 0.31, 0.013, 8, seg]} />
       </mesh>
-      {/* sapphire dome, recessed inside the bezel */}
-      <mesh material={mats.lensGlass} scale={[1, 1, 0.2]} position={[0, 0, 0.12]}>
-        <sphereGeometry args={[r - 0.02, seg, hi ? 32 : 14]} />
+      {/* coated dome */}
+      <mesh material={mats.lensGlass} scale={[1, 1, 0.3]} position={[0, 0, 0.1]}>
+        <sphereGeometry args={[r - 0.04, seg, hi ? 32 : 14]} />
       </mesh>
-      {/* sensor pip + focus laser */}
-      <mesh material={mats.ice} position={[r + 0.34, -r - 0.02, 0.02]}>
-        <sphereGeometry args={[0.075, 14, 10]} />
-      </mesh>
-      <mesh material={mats.amber} position={[r + 0.34, r - 0.16, 0.02]}>
-        <sphereGeometry args={[0.05, 12, 10]} />
+      {/* lens glint */}
+      <mesh material={mats.ice} position={[-r * 0.42, r * 0.46, 0.2]} rotation={[0, 0, -0.5]}>
+        <circleGeometry args={[0.075, 16]} />
       </mesh>
     </group>
   );
